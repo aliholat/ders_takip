@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Ders Takip</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    :root{
+      --bg:#f3f4f6; --card:#fff; --text:#111827; --muted:#6b7280; --border:#e5e7eb;
+      --accent:#111827; --accentText:#fff; --danger:#b91c1c; --shadow:0 8px 24px rgba(0,0,0,.07);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif; background:var(--bg); color:var(--text);
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{max-width:1400px;margin:0 auto;padding:16px 16px 48px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;
+      position:sticky;top:0;z-index:20;padding:10px 0;background:linear-gradient(var(--bg) 75%, transparent);
+    }
+    h1{font-size:22px;margin:0}
+    .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--border);background:var(--card);color:var(--text);
+      padding:10px 13px;border-radius:12px;font-weight:650;
+    }
+    .btn.primary{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
+    .btn.danger{color:var(--danger)}
+    .weekbar{
+      display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);
+      padding:12px;border-radius:16px;box-shadow:var(--shadow);margin-bottom:14px
+    }
+    .weektitle{text-align:center;flex:1;font-weight:750}
+    .muted{color:var(--muted);font-size:13px}
+    .grid{
+      display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;align-items:start;
+      overflow-x:auto;padding-bottom:6px
+    }
+    .day{
+      background:var(--card);border:1px solid var(--border);border-radius:16px;min-height:190px;
+      box-shadow:var(--shadow);overflow:hidden
+    }
+    .dayhead{padding:12px;border-bottom:1px solid var(--border);font-weight:750}
+    .dayhead.today{background:#eef2ff}
+    .date{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
+    .sessions{padding:9px;display:flex;flex-direction:column;gap:8px}
+    .session{
+      border:0;border-left:5px solid var(--course-color,#64748b);background:#f9fafb;text-align:left;
+      width:100%;padding:10px;border-radius:12px;transition:.15s transform,.15s box-shadow;
+    }
+    .session:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(0,0,0,.08)}
+    .session .name{font-weight:800}
+    .session .time{font-size:12px;color:var(--muted);margin-top:4px}
+    .session .status{font-size:12px;margin-top:7px;font-weight:750}
+    .status.on_time{color:#047857}.status.slightly_late{color:#a16207}
+    .status.very_late{color:#c2410c}.status.absent{color:#b91c1c}.status.cancelled{color:#6b7280}
+    .empty{color:var(--muted);font-size:13px;padding:8px}
+    .stats-wrap{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:15px;box-shadow:var(--shadow)}
+    .panel h2{font-size:17px;margin:0 0 12px}
+    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .statcard{background:#f9fafb;border:1px solid var(--border);border-radius:14px;padding:12px}
+    .big{font-size:28px;font-weight:850;line-height:1}
+    .progress{height:9px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:10px}
+    .progress > div{height:100%;background:#111827;width:0}
+    .course-row{
+      display:grid;grid-template-columns:minmax(120px,1.4fr) 1fr 1fr;gap:8px;padding:9px 0;
+      border-bottom:1px solid var(--border);align-items:center;font-size:13px
+    }
+    .course-row:last-child{border-bottom:0}
+    .course-name{font-weight:750}
+    dialog{border:0;border-radius:18px;padding:0;max-width:560px;width:calc(100% - 24px);box-shadow:0 24px 70px rgba(0,0,0,.28)}
+    dialog::backdrop{background:rgba(17,24,39,.55)}
+    .modal{padding:18px}
+    .modal h3{margin:0 0 14px}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:11px}
+    label{font-size:13px;font-weight:700}
+    input,select{padding:11px 12px;border:1px solid #d1d5db;border-radius:11px;background:#fff}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap}
+    .status-list{display:grid;gap:8px}
+    .status-btn{padding:13px;border:1px solid var(--border);border-radius:12px;background:#fff;text-align:left;font-weight:700}
+    .status-btn:hover{background:#f9fafb}
+    .schedule-list{margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}
+    .schedule-item{display:flex;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:11px;padding:9px 10px}
+    .mini{font-size:12px;color:var(--muted)}
+    .footer-note{margin-top:14px;color:var(--muted);font-size:12px;text-align:center}
+    .hidden{display:none!important}
+
+    @media (max-width:900px){
+      .app{padding:10px 10px 36px}
+      .grid{display:flex;flex-direction:column;overflow:visible}
+      .day{width:100%;min-height:0}
+      .day:not(.active-mobile){display:none}
+      .day.active-mobile{display:block}
+      .mobile-days{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px}
+      .mobile-day-btn{min-width:54px;padding:8px;border:1px solid var(--border);background:#fff;border-radius:12px;font-size:12px;font-weight:750}
+      .mobile-day-btn.active{background:#111827;color:#fff}
+      .stats-wrap{grid-template-columns:1fr}
+      .topbar{align-items:flex-start}
+      .top-actions .btn.secondary-hide{display:none}
+    }
+    @media (min-width:901px){.mobile-days{display:none}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1>Ders Takip</h1>
+      <div class="muted">Haftalık program + devam takibi</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="backupBtn">Yedek</button>
+      <button class="btn danger" id="wipeBtn">Tüm Verileri Sil</button>
+      <button class="btn primary" id="editScheduleBtn">Programı Düzenle</button>
+    </div>
+  </div>
+
+  <div class="weekbar">
+    <button class="btn" id="prevWeek">‹</button>
+    <div class="weektitle">
+      <div id="weekTitle"></div>
+      <button class="btn" id="todayBtn" style="padding:6px 9px;margin-top:6px">Bu hafta</button>
+    </div>
+    <button class="btn" id="nextWeek">›</button>
+  </div>
+
+  <div id="mobileDays" class="mobile-days"></div>
+  <div id="weekGrid" class="grid"></div>
+
+  <div class="stats-wrap">
+    <section class="panel">
+      <h2>Genel Durum</h2>
+      <div class="cards">
+        <div class="statcard">
+          <div class="muted">Seçili hafta</div>
+          <div class="big" id="weekPercent">—</div>
+          <div class="progress"><div id="weekProgress"></div></div>
+          <div class="mini" id="weekCount"></div>
+        </div>
+        <div class="statcard">
+          <div class="muted">Şu ana kadar</div>
+          <div class="big" id="allPercent">—</div>
+          <div class="progress"><div id="allProgress"></div></div>
+          <div class="mini" id="allCount"></div>
+        </div>
+      </div>
+      <div class="footer-note">
+        Puanlama: vaktinde %100 · biraz geç %80 · baya geç %50 · gitmedim %0 · iptal edilen ders hesaba katılmaz.
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Ders Bazında</h2>
+      <div class="muted" style="margin-bottom:8px">Aynı dersin farklı oturumları burada birleşik gösterilir.</div>
+      <div class="course-row" style="font-weight:800">
+        <div>Ders</div><div>Bu hafta</div><div>Toplam</div>
+      </div>
+      <div id="courseStats"></div>
+
+      <h2 style="margin-top:18px">Oturum Bazında</h2>
+      <div class="muted" style="margin-bottom:8px">Örn. SSD1 Sabah ve SSD1 Öğlen ayrı ayrı.</div>
+      <div class="course-row" style="font-weight:800">
+        <div>Oturum</div><div>Bu hafta</div><div>Toplam</div>
+      </div>
+      <div id="sessionStats"></div>
+    </section>
+  </div>
+</div>
+
+<dialog id="statusDialog">
+  <div class="modal">
+    <h3 id="statusTitle">Ders durumu</h3>
+    <div class="muted" id="statusSubtitle" style="margin-bottom:12px"></div>
+    <div class="status-list">
+      <button class="status-btn" data-status="cancelled">Ders iptal oldu</button>
+      <button class="status-btn" data-status="on_time">Derse vaktinde gidildi</button>
+      <button class="status-btn" data-status="slightly_late">Derse biraz geç gidildi</button>
+      <button class="status-btn" data-status="very_late">Derse baya geç gidildi</button>
+      <button class="status-btn" data-status="absent">Derse gitmedim</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" id="clearStatusBtn">Kaydı Sil</button>
+      <button class="btn" id="closeStatusBtn">Kapat</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="scheduleDialog">
+  <div class="modal">
+    <h3>Programı Düzenle</h3>
+    <form id="scheduleForm">
+      <div class="field">
+        <label>Ders adı</label>
+        <input id="courseName" required placeholder="Örn. SSD1" maxlength="60" />
+      </div>
+      <div class="field">
+        <label>Oturum / grup adı <span class="muted">(isteğe bağlı)</span></label>
+        <input id="sessionLabel" placeholder="Örn. Sabah, Öğlen, Lab, Grup 1" maxlength="40" />
+        <div class="mini">Aynı ders farklı gün/saatlerdeyse aynı ders adını kullanıp yalnızca oturum adını değiştir.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field">
+          <label>Gün</label>
+          <select id="daySelect">
+            <option value="1">Pazartesi</option><option value="2">Salı</option><option value="3">Çarşamba</option>
+            <option value="4">Perşembe</option><option value="5">Cuma</option><option value="6">Cumartesi</option>
+            <option value="0">Pazar</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Renk</label>
+          <input id="courseColor" type="color" value="#4f46e5" style="height:44px;padding:5px" />
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label>Başlangıç</label><input id="startTime" type="time" required /></div>
+        <div class="field"><label>Bitiş</label><input id="endTime" type="time" required /></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="closeScheduleBtn">Kapat</button>
+        <button type="submit" class="btn primary">Dersi Ekle</button>
+      </div>
+    </form>
+    <div class="schedule-list" id="scheduleList"></div>
+  </div>
+</dialog>
+
+
+<dialog id="wipeDialog">
+  <div class="modal">
+    <h3>Tüm verileri sil</h3>
+    <p class="muted">
+      Bu işlem ders programını, devam kayıtlarını, yerel uygulama verilerini ve mümkün olan önbellekleri bu cihazdan siler.
+      İşlem geri alınamaz.
+    </p>
+    <div class="modal-actions">
+      <button class="btn" id="cancelWipeBtn">Vazgeç</button>
+      <button class="btn danger" id="confirmWipeBtn">Evet, hepsini sil</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="backupDialog">
+  <div class="modal">
+    <h3>Yedekleme</h3>
+    <p class="muted">Bu sürüm verileri bu tarayıcıda tutar. Telefon–PC aktarımı için dışa aktar / içe aktar kullanabilirsin.</p>
+    <div class="modal-actions" style="justify-content:flex-start">
+      <button class="btn primary" id="exportBtn">JSON dışa aktar</button>
+      <label class="btn" for="importFile" style="cursor:pointer">JSON içe aktar</label>
+      <input class="hidden" type="file" id="importFile" accept="application/json" />
+      <button class="btn" id="closeBackupBtn">Kapat</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const STORAGE_KEY = "dersTakipDataV1";
+const STATUS = {
+  cancelled:{label:"Ders iptal oldu", weight:null},
+  on_time:{label:"Vaktinde gidildi", weight:100},
+  slightly_late:{label:"Biraz geç gidildi", weight:80},
+  very_late:{label:"Baya geç gidildi", weight:50},
+  absent:{label:"Derse gitmedim", weight:0}
+};
+const DAYS = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+const DAY_ORDER = [1,2,3,4,5,6,0];
+
+let state = load();
+let weekOffset = 0;
+let selectedSession = null;
+let mobileDay = new Date().getDay();
+if(!DAY_ORDER.includes(mobileDay)) mobileDay = 1;
+
+function load(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if(saved && saved.schedule && saved.records) return saved;
+  }catch(e){}
+  return {schedule:[], records:{}};
+}
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function uid(){ return crypto?.randomUUID?.() || (Date.now()+"-"+Math.random().toString(16).slice(2)); }
+function pad(n){return String(n).padStart(2,"0")}
+function isoDate(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function formatDate(d){ return d.toLocaleDateString("tr-TR",{day:"2-digit",month:"short"}); }
+function startOfWeek(base=new Date()){
+  const d=new Date(base); d.setHours(0,0,0,0);
+  const day=d.getDay(); const diff=(day===0?-6:1-day);
+  d.setDate(d.getDate()+diff+(weekOffset*7)); return d;
+}
+function dateForDay(weekStart, jsDay){
+  const d=new Date(weekStart);
+  const offset = jsDay===0 ? 6 : jsDay-1;
+  d.setDate(d.getDate()+offset); return d;
+}
+function sessionKey(item,date){ return `${isoDate(date)}__${item.id}`; }
+function isToday(d){ const n=new Date(); return isoDate(n)===isoDate(d); }
+
+function render(){
+  renderWeek();
+  renderStats();
+  renderScheduleList();
+}
+function renderWeek(){
+  const ws=startOfWeek(), we=new Date(ws); we.setDate(we.getDate()+6);
+  document.getElementById("weekTitle").textContent=`${formatDate(ws)} – ${formatDate(we)} ${we.getFullYear()}`;
+
+  const grid=document.getElementById("weekGrid");
+  grid.innerHTML="";
+  DAY_ORDER.forEach(day=>{
+    const date=dateForDay(ws,day);
+    const section=document.createElement("section");
+    section.className="day"+(day===mobileDay?" active-mobile":"");
+    const head=document.createElement("div");
+    head.className="dayhead"+(isToday(date)?" today":"");
+    head.innerHTML=`${DAYS[day]}<span class="date">${date.toLocaleDateString("tr-TR",{day:"2-digit",month:"long"})}</span>`;
+    const list=document.createElement("div"); list.className="sessions";
+
+    const sessions=state.schedule.filter(s=>Number(s.day)===day).sort((a,b)=>a.start.localeCompare(b.start));
+    if(!sessions.length){
+      list.innerHTML='<div class="empty">Ders yok</div>';
+    } else {
+      sessions.forEach(item=>{
+        const key=sessionKey(item,date);
+        const rec=state.records[key];
+        const btn=document.createElement("button");
+        btn.className="session";
+        btn.style.setProperty("--course-color",item.color||"#64748b");
+        const statusHtml=rec ? `<div class="status ${rec.status}">${STATUS[rec.status].label}</div>` : '<div class="status muted">Durum girilmedi</div>';
+        btn.innerHTML=`<div class="name">${escapeHtml(displayCourse(item))}</div><div class="time">${item.start}–${item.end}</div>${statusHtml}`;
+        btn.addEventListener("click",()=>openStatus(item,date,key));
+        list.appendChild(btn);
+      })
+    }
+    section.appendChild(head); section.appendChild(list); grid.appendChild(section);
+  });
+
+  const md=document.getElementById("mobileDays"); md.innerHTML="";
+  DAY_ORDER.forEach(day=>{
+    const date=dateForDay(ws,day), b=document.createElement("button");
+    b.className="mobile-day-btn"+(day===mobileDay?" active":"");
+    b.innerHTML=`${DAYS[day].slice(0,3)}<br>${pad(date.getDate())}`;
+    b.onclick=()=>{mobileDay=day;renderWeek()};
+    md.appendChild(b);
+  })
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));}
+function baseCourse(item){ return item.courseBase || item.course || "Ders"; }
+function sessionLabelOf(item){ return item.sessionLabel || ""; }
+function displayCourse(item){
+  const base=baseCourse(item), label=sessionLabelOf(item);
+  return label ? `${base} — ${label}` : base;
+}
+
+function openStatus(item,date,key){
+  selectedSession={item,date,key};
+  document.getElementById("statusTitle").textContent=displayCourse(item);
+  document.getElementById("statusSubtitle").textContent=`${DAYS[date.getDay()]} · ${date.toLocaleDateString("tr-TR")} · ${item.start}–${item.end}`;
+  document.getElementById("statusDialog").showModal();
+}
+document.querySelectorAll(".status-btn").forEach(b=>b.addEventListener("click",()=>{
+  if(!selectedSession) return;
+  state.records[selectedSession.key]={
+    status:b.dataset.status,
+    course:baseCourse(selectedSession.item),
+    sessionLabel:sessionLabelOf(selectedSession.item),
+    displayCourse:displayCourse(selectedSession.item),
+    courseColor:selectedSession.item.color,
+    scheduleId:selectedSession.item.id,
+    date:isoDate(selectedSession.date),
+    timestamp:new Date().toISOString()
+  };
+  save(); document.getElementById("statusDialog").close(); render();
+}));
+document.getElementById("clearStatusBtn").onclick=()=>{
+  if(selectedSession){ delete state.records[selectedSession.key]; save(); render(); }
+  document.getElementById("statusDialog").close();
+};
+document.getElementById("closeStatusBtn").onclick=()=>document.getElementById("statusDialog").close();
+
+function calc(records){
+  const valid=records.filter(r=>r.status && STATUS[r.status] && STATUS[r.status].weight!==null);
+  if(!valid.length) return {pct:null,count:0};
+  const total=valid.reduce((sum,r)=>sum+STATUS[r.status].weight,0);
+  return {pct:Math.round(total/valid.length),count:valid.length};
+}
+function renderStats(){
+  const ws=startOfWeek(), we=new Date(ws); we.setDate(we.getDate()+6);
+  const all=Object.values(state.records);
+  const weekRecs=all.filter(r=>{
+    const d=new Date(r.date+"T00:00:00"); return d>=ws && d<=we;
+  });
+  const week=calc(weekRecs), total=calc(all);
+  setStat("week",week); setStat("all",total);
+
+  const courseNames=[...new Set([
+    ...state.schedule.map(s=>baseCourse(s)),
+    ...all.map(r=>r.course)
+  ])].filter(Boolean).sort((a,b)=>a.localeCompare(b,"tr"));
+
+  const holder=document.getElementById("courseStats"); holder.innerHTML="";
+  if(!courseNames.length){
+    holder.innerHTML='<div class="empty">Henüz ders eklenmedi.</div>';
+  } else {
+    courseNames.forEach(name=>{
+      const w=calc(weekRecs.filter(r=>r.course===name));
+      const a=calc(all.filter(r=>r.course===name));
+      const row=document.createElement("div"); row.className="course-row";
+      row.innerHTML=`<div class="course-name">${escapeHtml(name)}</div><div>${fmtPct(w)}<div class="mini">${w.count} kayıt</div></div><div>${fmtPct(a)}<div class="mini">${a.count} kayıt</div></div>`;
+      holder.appendChild(row);
+    });
+  }
+
+  const sessionMap=new Map();
+  state.schedule.forEach(s=>{
+    const base=baseCourse(s), label=sessionLabelOf(s);
+    sessionMap.set(`${base}|||${label}`, {base,label,display:displayCourse(s)});
+  });
+  all.forEach(r=>{
+    const base=r.course || "Ders", label=r.sessionLabel || "";
+    const key=`${base}|||${label}`;
+    if(!sessionMap.has(key)) sessionMap.set(key,{base,label,display:label ? `${base} — ${label}` : base});
+  });
+
+  const sessionHolder=document.getElementById("sessionStats"); sessionHolder.innerHTML="";
+  const sessions=[...sessionMap.values()].sort((a,b)=>a.display.localeCompare(b.display,"tr"));
+  if(!sessions.length){
+    sessionHolder.innerHTML='<div class="empty">Henüz oturum yok.</div>';
+  } else {
+    sessions.forEach(s=>{
+      const match=r=>r.course===s.base && (r.sessionLabel||"")===s.label;
+      const w=calc(weekRecs.filter(match)), a=calc(all.filter(match));
+      const row=document.createElement("div"); row.className="course-row";
+      row.innerHTML=`<div class="course-name">${escapeHtml(s.display)}</div><div>${fmtPct(w)}<div class="mini">${w.count} kayıt</div></div><div>${fmtPct(a)}<div class="mini">${a.count} kayıt</div></div>`;
+      sessionHolder.appendChild(row);
+    });
+  }
+}
+function fmtPct(x){return x.pct===null?"—":`%${x.pct}`}
+function setStat(prefix,x){
+  document.getElementById(prefix+"Percent").textContent=fmtPct(x);
+  document.getElementById(prefix+"Progress").style.width=(x.pct??0)+"%";
+  document.getElementById(prefix+"Count").textContent=x.count?`${x.count} değerlendirilmiş ders`:"Henüz değerlendirme yok";
+}
+
+document.getElementById("scheduleForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const course=document.getElementById("courseName").value.trim();
+  const label=document.getElementById("sessionLabel").value.trim();
+  const start=document.getElementById("startTime").value, end=document.getElementById("endTime").value;
+  if(!course||!start||!end)return;
+  state.schedule.push({
+    id:uid(), course, courseBase:course, sessionLabel:label,
+    day:Number(document.getElementById("daySelect").value),
+    start,end,color:document.getElementById("courseColor").value
+  });
+  save(); e.target.reset(); document.getElementById("courseColor").value="#4f46e5"; render();
+});
+function renderScheduleList(){
+  const holder=document.getElementById("scheduleList");
+  holder.innerHTML="";
+  const items=[...state.schedule].sort((a,b)=>DAY_ORDER.indexOf(a.day)-DAY_ORDER.indexOf(b.day)||a.start.localeCompare(b.start));
+  if(!items.length){holder.innerHTML='<div class="empty">Program boş.</div>';return;}
+  items.forEach(item=>{
+    const row=document.createElement("div"); row.className="schedule-item";
+    row.innerHTML=`<div><b>${escapeHtml(displayCourse(item))}</b><div class="mini">${DAYS[item.day]} · ${item.start}–${item.end}</div></div>`;
+    const del=document.createElement("button"); del.className="btn danger"; del.textContent="Sil";
+    del.onclick=()=>{state.schedule=state.schedule.filter(s=>s.id!==item.id);save();render()};
+    row.appendChild(del); holder.appendChild(row);
+  })
+}
+document.getElementById("editScheduleBtn").onclick=()=>document.getElementById("scheduleDialog").showModal();
+document.getElementById("closeScheduleBtn").onclick=()=>document.getElementById("scheduleDialog").close();
+document.getElementById("prevWeek").onclick=()=>{weekOffset--;render()};
+document.getElementById("nextWeek").onclick=()=>{weekOffset++;render()};
+document.getElementById("todayBtn").onclick=()=>{weekOffset=0;mobileDay=new Date().getDay();render()};
+
+document.getElementById("backupBtn").onclick=()=>document.getElementById("backupDialog").showModal();
+document.getElementById("closeBackupBtn").onclick=()=>document.getElementById("backupDialog").close();
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`ders-takip-yedek-${isoDate(new Date())}.json`; a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById("importFile").addEventListener("change",async e=>{
+  const file=e.target.files?.[0]; if(!file)return;
+  try{
+    const data=JSON.parse(await file.text());
+    if(!Array.isArray(data.schedule)||typeof data.records!=="object") throw new Error();
+    state=data; save(); render(); alert("Yedek başarıyla yüklendi.");
+  }catch(err){alert("Geçersiz yedek dosyası.");}
+  e.target.value="";
+});
+
+
+document.getElementById("wipeBtn").onclick=()=>document.getElementById("wipeDialog").showModal();
+document.getElementById("cancelWipeBtn").onclick=()=>document.getElementById("wipeDialog").close();
+
+document.getElementById("confirmWipeBtn").onclick=async()=>{
+  try{
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.clear();
+
+    if("caches" in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+
+    if("serviceWorker" in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+
+    state={schedule:[],records:{}};
+    document.getElementById("wipeDialog").close();
+    render();
+
+    alert("Uygulama verileri ve erişilebilir önbellekler bu cihazdan silindi. Uygulamayı ana ekrana/PWA olarak kurduysan simgesini ayrıca kaldırabilirsin.");
+  }catch(e){
+    alert("Verilerin büyük kısmı silindi ancak tarayıcı bazı uygulama dosyalarını kendi alanında tutmuş olabilir. Site verilerini tarayıcı ayarlarından temizleyebilirsin.");
+  }
+};
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+render();
+</script>
+</body>
+</html>
